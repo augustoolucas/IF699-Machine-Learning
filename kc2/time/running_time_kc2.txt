@@ -1,0 +1,7 @@
+Uniform Avg Training Time:  0.0008214314778645833
+Uniform Avg Test Time:  0.004738044738769532
+Weighted Avg Training Time:  0.0008530086941189237
+Weighted Avg Test Time:  0.0017605145772298177
+Adaptive Avg Training:  0.5948619206746419
+Adaptive Avg Test:  1.0181583510504828
+
