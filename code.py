@@ -14,8 +14,8 @@ def load_dataset(filename):
     df = df.dropna()
     df = df.sample(frac=1).reset_index(drop=True)
 
-    attributes = pd.DataFrame(df.drop('defects', 1))
-    labels = pd.DataFrame(df['defects'])
+    attributes = pd.DataFrame(df.drop('problems', 1))
+    labels = pd.DataFrame(df['problems'])
 
     return attributes, labels
 
@@ -81,9 +81,9 @@ def plot_data(data, filename, xlabel='', ylabel=''):
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)
 
-    plt.savefig(filename, 
-            dpi=144, 
-            format='png', 
+    plt.savefig(filename,
+            dpi=144,
+            format='png',
             bbox_extra_artists=(lg,),
             bbox_inches='tight')
 
@@ -93,7 +93,11 @@ def plot_data_avg(data, filename, xlabel='', ylabel=''):
     max_v = 0
     for k in data:
         v = list(map(avg, list(data[k].values())))
-        plt.plot(range(1, len(v)+1), v, label=k.capitalize())
+        p, = plt.plot(range(1, len(v)+1), v, alpha=0.8, linewidth=3)
+
+        if len(data) > 1:
+            p.set_label(k.capitalize())
+
         plt.xticks(range(1, len(data[k].keys())+1), data[k].keys())
 
         if min_v > min(v):
@@ -102,16 +106,22 @@ def plot_data_avg(data, filename, xlabel='', ylabel=''):
         if max_v < max(v):
             max_v = max(v)
 
-    lg = plt.legend(bbox_to_anchor=(1.05, 1.0), loc='upper left')
-    plt.xlabel(xlabel)
-    plt.ylabel(ylabel)
+    plt.xlabel(xlabel, fontsize='x-large')
+    plt.ylabel(ylabel, fontsize='x-large')
     plt.ylim(min_v*0.95, max_v*1.05)
 
-    plt.savefig(filename,
-                dpi=144, 
-                format='png',
-                bbox_extra_artists=(lg,),
-                bbox_inches='tight')
+    if len(data) > 1:
+        lg = plt.legend(loc='lower left', bbox_to_anchor=(0.0, 1.01), ncol=len(data),
+                        borderaxespad=0, frameon=False, fontsize='x-large')
+        plt.savefig(filename,
+                    dpi=144,
+                    format='png',
+                    bbox_extra_artists=(lg,),
+                    bbox_inches='tight')
+    else:
+        plt.savefig(filename,
+                    dpi=144,
+                    format='png')
 
 
 def avg(lst):
@@ -119,9 +129,9 @@ def avg(lst):
 
 
 if __name__ == '__main__':
-    attributes, labels = load_dataset('./kc1.arff')
+    attributes, labels = load_dataset('./kc2.arff')
     labels = labels.astype(str).replace({"b'false'": 0, "b'true'": 1})
-    #labels = labels.astype(str).replace({"b'no'": 0, "b'yes'": 1})
+    labels = labels.astype(str).replace({"b'no'": 0, "b'yes'": 1})
 
     kf = KFold(n_splits=5)
     kf.get_n_splits(attributes)
@@ -137,24 +147,14 @@ if __name__ == '__main__':
             x_train, x_test = attributes.iloc[train_idx], attributes.iloc[test_idx]
             y_train, y_test = labels.iloc[train_idx], labels.iloc[test_idx]
 
-            """
-            print('Train')
-            print(f'False: {len(y_train) - y_train["defects"].sum()}')
-            print(f'True: {y_train["defects"].sum()}')
-
-            print('Test:')
-            print(f'False: {len(y_test) - y_test["defects"].sum()}')
-            print(f'True: {y_test["defects"].sum()}')
-            """
-            
             scaler = StandardScaler().fit(x_train)
             x_train = scaler.transform(x_train)
 
             scaler = StandardScaler().fit(x_test)
             x_test = scaler.transform(x_test)
 
-            y_train = y_train['defects'].tolist()
-            y_test = y_test['defects'].tolist()
+            y_train = y_train['problems'].tolist()
+            y_test = y_test['problems'].tolist()
 
             start_time = time.time()
             classifier = KNeighborsClassifier(n_neighbors=n_k, weights='uniform')
@@ -190,52 +190,37 @@ if __name__ == '__main__':
     data['uniform'] = knn_uniform_metrics.accuracy
     data['weighted'] = knn_weighted_metrics.accuracy
     data['adaptive'] = knn_adaptive_metrics.accuracy
-    """
-    plot_data(data['uniform'], 'knn_accuracy_uniform.png', 'Fold', 'Accuracy')
-    plot_data(data['weighted'], 'knn_accuracy_weighted.png', 'Fold', 'Accuracy')
-    plot_data(data['adaptive'], 'knn_accuracy_adaptive.png', 'Fold', 'Accuracy')
-    """
-    plot_data_avg(data, 'knn_all_accuracy_avg.png', 'Value of K', 'Accuracy')
+    plot_data_avg(data, 'knn_all_accuracy_avg.png', 'Value of K', 'Avg Accuracy')
 
     data['uniform'] = knn_uniform_metrics.precision
     data['weighted'] = knn_weighted_metrics.precision
     data['adaptive'] = knn_adaptive_metrics.precision
-    """
-    plot_data(data['uniform'], 'knn_precision_uniform.png', 'Fold', 'Precision')
-    plot_data(data['weighted'], 'knn_precision_weighted.png', 'Fold', 'Precision')
-    plot_data(data['adaptive'], 'knn_precision_adaptive.png', 'Fold', 'Precision')
-    """
-    plot_data_avg(data, 'knn_all_precision_avg.png', 'Value of K', 'Precision')
+    plot_data_avg(data, 'knn_all_precision_avg.png', 'Value of K', 'Avg Precision')
 
     data['uniform'] = knn_uniform_metrics.recall
     data['weighted'] = knn_weighted_metrics.recall
     data['adaptive'] = knn_adaptive_metrics.recall
-    plot_data_avg(data, 'knn_all_recall_avg.png', 'Value of K', 'Recall')
+    plot_data_avg(data, 'knn_all_recall_avg.png', 'Value of K', 'Avg Recall')
 
     data['uniform'] = knn_uniform_metrics.f1
     data['weighted'] = knn_weighted_metrics.f1
     data['adaptive'] = knn_adaptive_metrics.f1
-    plot_data_avg(data, 'knn_all_f1_avg.png', 'Value of K', 'F1')
+    plot_data_avg(data, 'knn_all_f1_avg.png', 'Value of K', 'Avg F1')
 
     data = {}
-    data['uniform'] = knn_uniform_metrics.training_time
-    plot_data_avg(data, 'knn_uniform_training_avg.png', 'Value of K', 'Time')
-    data = {}
-    data['weighted'] = knn_weighted_metrics.training_time
-    plot_data_avg(data, 'knn_weighted_training_avg.png', 'Value of K', 'Time')
-    data = {}
-    data['adaptive'] = knn_adaptive_metrics.training_time
-    plot_data_avg(data, 'knn_adaptive_training_avg.png', 'Value of K', 'Time')
+    data['training'] = knn_uniform_metrics.training_time
+    data['test'] = knn_uniform_metrics.test_time
+    plot_data_avg(data, 'knn_uniform_avg_time.png', 'Value of K', 'Avg Time')
 
     data = {}
-    data['uniform'] = knn_uniform_metrics.test_time
-    plot_data_avg(data, 'knn_uniform_test_avg.png', 'Value of K', 'Time')
+    data['training'] = knn_weighted_metrics.training_time
+    data['test'] = knn_weighted_metrics.test_time
+    plot_data_avg(data, 'knn_weighted_avg_time.png', 'Value of K', 'Avg Time')
+
     data = {}
-    data['weighted'] = knn_weighted_metrics.test_time
-    plot_data_avg(data, 'knn_weighted_test_avg.png', 'Value of K', 'Time')
-    data = {}
-    data['adaptive'] = knn_adaptive_metrics.test_time
-    plot_data_avg(data, 'knn_adaptive_test_avg.png', 'Value of K', 'Time')
+    data['training'] = knn_adaptive_metrics.training_time
+    data['test'] = knn_adaptive_metrics.test_time
+    plot_data_avg(data, 'knn_adaptive_avg_time.png', 'Value of K', 'Avg Time')
 
     print('Uniform Avg Training Time: ',
           avg(list(map(avg, list(knn_uniform_metrics.training_time.values())))))
