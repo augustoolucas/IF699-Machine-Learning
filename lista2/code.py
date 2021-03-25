@@ -5,6 +5,7 @@ import sklearn.metrics as metrics
 import matplotlib.pyplot as plt
 import lvq1
 import lvq21
+import lvq31
 
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.preprocessing import StandardScaler
@@ -185,6 +186,13 @@ if __name__ == '__main__':
                 y_data = {label_column: y_train}
                 y_train = pd.DataFrame.from_dict({label_column: y_train})
 
+                x_train, y_train = lvq21.gen_prototypes(x_train,
+                                                        y_train,
+                                                            num_protos)
+
+                y_data = {label_column: y_train}
+                y_train = pd.DataFrame.from_dict({label_column: y_train})
+
                 scaler = StandardScaler().fit(x_train)
                 x_train = scaler.transform(x_train)
 
@@ -211,11 +219,11 @@ if __name__ == '__main__':
         prototypes_metrics[n_k].append(knn_uniform_metrics)
 
 
-    plot_data_avg(prototypes_metrics, 'acc', f'lvq1_accuracy_avg.png', 'Num of Protos', 'Avg Accuracy')
-    plot_data_avg(prototypes_metrics, 'prec', f'lvq1_precision_avg.png', 'Num of Protos', 'Avg Accuracy')
-    plot_data_avg(prototypes_metrics, 'f1', f'lvq1_f1_avg.png', 'Num of Protos', 'Avg Accuracy')
-    plot_data_avg(prototypes_metrics, 'train_time', f'lvq1_f1_avg.png', 'Num of Protos', 'Avg Accuracy')
-    plot_data_avg(prototypes_metrics, 'test_time', f'lvq1_time_avg.png', 'Num of Protos', 'Avg Accuracy')
+    plot_data_avg(prototypes_metrics, 'acc', f'lvq2_accuracy_avg.png', 'Num of Protos', 'Avg Accuracy')
+    plot_data_avg(prototypes_metrics, 'prec', f'lvq2_precision_avg.png', 'Num of Protos', 'Avg Accuracy')
+    plot_data_avg(prototypes_metrics, 'f1', f'lvq2_f1_avg.png', 'Num of Protos', 'Avg Accuracy')
+    plot_data_avg(prototypes_metrics, 'train_time', f'lvq2_f1_avg.png', 'Num of Protos', 'Avg Accuracy')
+    plot_data_avg(prototypes_metrics, 'test_time', f'lvq2_time_avg.png', 'Num of Protos', 'Avg Accuracy')
 """
 print('Uniform Avg Training Time: ',
       avg(list(map(avg, list(knn_uniform_metrics.training_time.values())))))
