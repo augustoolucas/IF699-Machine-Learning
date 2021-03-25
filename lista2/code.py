@@ -186,7 +186,7 @@ if __name__ == '__main__':
                 y_data = {label_column: y_train}
                 y_train = pd.DataFrame.from_dict({label_column: y_train})
 
-                x_train, y_train = lvq21.gen_prototypes(x_train,
+                x_train, y_train = lvq31.gen_prototypes(x_train,
                                                         y_train,
                                                             num_protos)
 
