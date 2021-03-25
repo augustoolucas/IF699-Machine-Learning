@@ -96,13 +96,13 @@ def plot_data(data, filename, xlabel='', ylabel=''):
             bbox_extra_artists=(lg,),
             bbox_inches='tight')
 
-def plot_data_avg(data, filename, xlabel='', ylabel=''):
+def plot_data_avg(data, filename, xlabel='', ylabel='', label=''):
     fig = plt.figure()
     min_v = 999
     max_v = 0
     for k in data:
         v = list(map(avg, list(data[k].values())))
-        p, = plt.plot(range(1, len(v)+1), v, alpha=0.8, linewidth=3)
+        p, = plt.plot(range(1, len(v)+1), v, alpha=0.8, linewidth=3, label=label)
 
         if len(data) > 1:
             p.set_label(k.capitalize())
@@ -128,6 +128,7 @@ def plot_data_avg(data, filename, xlabel='', ylabel=''):
                     bbox_extra_artists=(lg,),
                     bbox_inches='tight')
     else:
+        plt.legend()
         plt.savefig(filename,
                     dpi=144,
                     format='png')
@@ -149,22 +150,28 @@ if __name__ == '__main__':
     kf = KFold(n_splits=5)
     kf.get_n_splits(attributes)
 
-    knn_uniform_metrics = Metrics()
 
-    k_values = range(1, 4)
-    num_prototypes = [10, 50, 100]
+    k_values = range(1, 3)
+    num_prototypes = [100, 200, 300] # 500, 1000]
+    prototypes_metrics = {}
 
     for n_k in k_values:
+        prototypes_metrics[n_k] = []
+        knn_uniform_metrics = Metrics()
+        print('K Value: ', n_k)
         for num_protos in num_prototypes:
+            print('Num Protos:', num_protos)
             for train_idx, test_idx in kf.split(attributes):
                 x_train = attributes.iloc[train_idx].reset_index(drop=True)
                 x_test = attributes.iloc[test_idx].reset_index(drop=True)
                 y_train = labels.iloc[train_idx].reset_index(drop=True)
                 y_test = labels.iloc[test_idx].reset_index(drop=True)
 
-                prototypes_x, prototypes_y = lvq21.gen_prototypes(x_train,
-                                                                  y_train,
-                                                                  num_protos)
+                x_train, y_train = lvq1.gen_prototypes(x_train,
+                                                       y_train,
+                                                       num_protos)
+                y_data = {label_column: y_train}
+                y_train = pd.DataFrame.from_dict({label_column: y_train})
 
                 scaler = StandardScaler().fit(x_train)
                 x_train = scaler.transform(x_train)
@@ -180,36 +187,47 @@ if __name__ == '__main__':
                                                   weights='uniform')
 
                 classifier.fit(x_train, y_train)
-                knn_uniform_metrics.update_training_time(n_k,
+                knn_uniform_metrics.update_training_time(num_protos,
                                                          time.time() - start_time)
 
                 start_time = time.time()
                 y_pred = classifier.predict(x_test)
-                knn_uniform_metrics.update_test_time(n_k,
+                knn_uniform_metrics.update_test_time(num_protos,
                                                      time.time() - start_time)
 
-                knn_uniform_metrics.update(n_k, y_test, y_pred)
+                knn_uniform_metrics.update(num_protos, y_test, y_pred)
+        prototypes_metrics[n_k].append(knn_uniform_metrics)
 
+    v = []
+    for k, proto_metrics in prototypes_metrics.items():
+        data = proto_metrics[0].accuracy
+        v.append(list(map(avg, list(data[k].values()))))
+        p, = plt.plot(range(1, len(v)+1), v, alpha=0.8, linewidth=3, label=f'K = {k}')
 
+    plt.legend()
+    plt.show()
+    breakpoint()
     data = {}
     data['uniform'] = knn_uniform_metrics.accuracy
-    plot_data_avg(data, 'knn_all_accuracy_avg.png', 'Value of K', 'Avg Accuracy')
-
+    plot_data_avg(data, f'lvq1_accuracy_avg.png', 'Num of Protos', 'Avg Accuracy')
     data['uniform'] = knn_uniform_metrics.precision
-    plot_data_avg(data, 'knn_all_precision_avg.png', 'Value of K', 'Avg Precision')
+    plot_data_avg(data, f'lvq1_precision_avg.png', 'Num of Protos', 'Avg Precision')
 
     data['uniform'] = knn_uniform_metrics.recall
-    plot_data_avg(data, 'knn_all_recall_avg.png', 'Value of K', 'Avg Recall')
+    plot_data_avg(data, f'lvq1_recall_avg.png', 'Num of Protos', 'Avg Recall')
 
     data['uniform'] = knn_uniform_metrics.f1
-    plot_data_avg(data, 'knn_all_f1_avg.png', 'Value of K', 'Avg F1')
+    plot_data_avg(data, f'lvq1_f1_avg.png', 'Num of Protos', 'Avg F1')
 
     data = {}
     data['training'] = knn_uniform_metrics.training_time
     data['test'] = knn_uniform_metrics.test_time
-    plot_data_avg(data, 'knn_uniform_avg_time.png', 'Value of K', 'Avg Time')
+    plot_data_avg(data, f'lvq1_avg_time.png', 'Value of K', 'Avg Time')
 
-    print('Uniform Avg Training Time: ',
-          avg(list(map(avg, list(knn_uniform_metrics.training_time.values())))))
-    print('Uniform Avg Test Time: ',
-          avg(list(map(avg, list(knn_uniform_metrics.test_time.values())))))
+
+"""
+print('Uniform Avg Training Time: ',
+      avg(list(map(avg, list(knn_uniform_metrics.training_time.values())))))
+print('Uniform Avg Test Time: ',
+      avg(list(map(avg, list(knn_uniform_metrics.test_time.values())))))
+"""

@@ -1,6 +1,6 @@
 import random
 
-NUM_UPDATES = 30
+NUM_UPDATES = 10
 WEIGHT = 0.1
 WINDOW = (1 - WEIGHT) / (1 + WEIGHT)
 
@@ -13,9 +13,9 @@ def get_random_prototypes(x, y, num_gen):
             while True:
                 idx = random.randint(0, len(x) - 1)
 
-                if (y.iloc[idx] != label).values[0]:
-                    continue
-                elif idx in idxs:
+                # if (y.iloc[idx] != label).values[0]:
+                #    continue
+                if idx in idxs:
                     continue
                 else:
                     idxs.append(idx)
