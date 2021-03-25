@@ -138,7 +138,7 @@ def avg(lst):
 
 
 if __name__ == '__main__':
-    attributes, labels = load_dataset('./kc2.arff')
+    attributes, labels = load_dataset('./kc1.arff')
     label_column = get_data_label(labels)
 
     if label_column == 'defects':
@@ -150,84 +150,58 @@ if __name__ == '__main__':
     kf.get_n_splits(attributes)
 
     knn_uniform_metrics = Metrics()
-    knn_weighted_metrics = Metrics()
-    knn_adaptive_metrics = Metrics()
 
     k_values = range(1, 4)
+    num_prototypes = [10, 50, 100]
 
     for n_k in k_values:
-        for train_idx, test_idx in kf.split(attributes):
-            x_train, x_test = attributes.iloc[train_idx], attributes.iloc[test_idx]
-            y_train, y_test = labels.iloc[train_idx], labels.iloc[test_idx]
+        for num_protos in num_prototypes:
+            for train_idx, test_idx in kf.split(attributes):
+                x_train = attributes.iloc[train_idx].reset_index(drop=True)
+                x_test = attributes.iloc[test_idx].reset_index(drop=True)
+                y_train = labels.iloc[train_idx].reset_index(drop=True)
+                y_test = labels.iloc[test_idx].reset_index(drop=True)
 
-            x_train = x_train.reset_index(drop=True)
-            x_test = x_test.reset_index(drop=True)
-            y_train = y_train.reset_index(drop=True)
-            y_test = y_test.reset_index(drop=True)
+                prototypes_x, prototypes_y = lvq21.gen_prototypes(x_train,
+                                                                  y_train,
+                                                                  num_protos)
 
-            prototypes_x, prototypes_y = lvq21.gen_prototypes(x_train,
-                                                              y_train)
+                scaler = StandardScaler().fit(x_train)
+                x_train = scaler.transform(x_train)
 
-            breakpoint()
+                scaler = StandardScaler().fit(x_test)
+                x_test = scaler.transform(x_test)
 
-            scaler = StandardScaler().fit(x_train)
-            x_train = scaler.transform(x_train)
+                y_train = y_train[label_column].tolist()
+                y_test = y_test[label_column].tolist()
 
-            scaler = StandardScaler().fit(x_test)
-            x_test = scaler.transform(x_test)
+                start_time = time.time()
+                classifier = KNeighborsClassifier(n_neighbors=n_k,
+                                                  weights='uniform')
 
-            y_train = y_train[label_column].tolist()
-            y_test = y_test[label_column].tolist()
+                classifier.fit(x_train, y_train)
+                knn_uniform_metrics.update_training_time(n_k,
+                                                         time.time() - start_time)
 
-            start_time = time.time()
-            classifier = KNeighborsClassifier(n_neighbors=n_k, weights='uniform')
-            classifier.fit(x_train, y_train)
-            knn_uniform_metrics.update_training_time(n_k, time.time() - start_time)
+                start_time = time.time()
+                y_pred = classifier.predict(x_test)
+                knn_uniform_metrics.update_test_time(n_k,
+                                                     time.time() - start_time)
 
-            start_time = time.time()
-            y_pred = classifier.predict(x_test)
-            knn_uniform_metrics.update_test_time(n_k, time.time() - start_time)
-            knn_uniform_metrics.update(n_k, y_test, y_pred)
+                knn_uniform_metrics.update(n_k, y_test, y_pred)
 
-            start_time = time.time()
-            classifier = KNeighborsClassifier(n_neighbors=n_k, weights='distance')
-            classifier.fit(x_train, y_train)
-            knn_weighted_metrics.update_training_time(n_k, time.time() - start_time)
-
-            start_time = time.time()
-            y_pred = classifier.predict(x_test)
-            knn_weighted_metrics.update_test_time(n_k, time.time() - start_time)
-            knn_weighted_metrics.update(n_k, y_test, y_pred)
-
-            start = time.time()
-            classifier = knn.KNN(n_k, ktype='adaptive')
-            classifier.fit(x_train, y_train)
-            knn_adaptive_metrics.update_training_time(n_k, time.time() - start_time)
-
-            start = time.time()
-            y_pred = classifier.predict(x_test)
-            knn_adaptive_metrics.update_test_time(n_k, time.time() - start_time)
-            knn_adaptive_metrics.update(n_k, y_test, y_pred)
 
     data = {}
     data['uniform'] = knn_uniform_metrics.accuracy
-    data['weighted'] = knn_weighted_metrics.accuracy
-    data['adaptive'] = knn_adaptive_metrics.accuracy
     plot_data_avg(data, 'knn_all_accuracy_avg.png', 'Value of K', 'Avg Accuracy')
 
     data['uniform'] = knn_uniform_metrics.precision
-    data['weighted'] = knn_weighted_metrics.precision
-    data['adaptive'] = knn_adaptive_metrics.precision
     plot_data_avg(data, 'knn_all_precision_avg.png', 'Value of K', 'Avg Precision')
 
     data['uniform'] = knn_uniform_metrics.recall
-    data['weighted'] = knn_weighted_metrics.recall
-    data['adaptive'] = knn_adaptive_metrics.recall
     plot_data_avg(data, 'knn_all_recall_avg.png', 'Value of K', 'Avg Recall')
 
     data['uniform'] = knn_uniform_metrics.f1
-    data['weighted'] = knn_weighted_metrics.f1
-    data['adaptive'] = knn_adaptive_metrics.f1
     plot_data_avg(data, 'knn_all_f1_avg.png', 'Value of K', 'Avg F1')
 
     data = {}
@@ -235,25 +209,7 @@ if __name__ == '__main__':
     data['test'] = knn_uniform_metrics.test_time
     plot_data_avg(data, 'knn_uniform_avg_time.png', 'Value of K', 'Avg Time')
 
-    data = {}
-    data['training'] = knn_weighted_metrics.training_time
-    data['test'] = knn_weighted_metrics.test_time
-    plot_data_avg(data, 'knn_weighted_avg_time.png', 'Value of K', 'Avg Time')
-
-    data = {}
-    data['training'] = knn_adaptive_metrics.training_time
-    data['test'] = knn_adaptive_metrics.test_time
-    plot_data_avg(data, 'knn_adaptive_avg_time.png', 'Value of K', 'Avg Time')
-
     print('Uniform Avg Training Time: ',
           avg(list(map(avg, list(knn_uniform_metrics.training_time.values())))))
     print('Uniform Avg Test Time: ',
           avg(list(map(avg, list(knn_uniform_metrics.test_time.values())))))
-    print('Weighted Avg Training Time: ',
-          avg(list(map(avg, list(knn_weighted_metrics.training_time.values())))))
-    print('Weighted Avg Test Time: ',
-          avg(list(map(avg, list(knn_weighted_metrics.test_time.values())))))
-    print('Adaptive Avg Training: ',
-          avg(list(map(avg, list(knn_adaptive_metrics.training_time.values())))))
-    print('Adaptive Avg Test: ',
-          avg(list(map(avg, list(knn_adaptive_metrics.test_time.values())))))
