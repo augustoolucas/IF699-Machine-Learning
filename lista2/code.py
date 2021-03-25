@@ -201,12 +201,13 @@ if __name__ == '__main__':
     v = []
     for k, proto_metrics in prototypes_metrics.items():
         data = proto_metrics[0].accuracy
-        v.append(list(map(avg, list(data[k].values()))))
+        v.append(list(map(avg, list(data.values()))))
         p, = plt.plot(range(1, len(v)+1), v, alpha=0.8, linewidth=3, label=f'K = {k}')
 
     plt.legend()
     plt.show()
-    breakpoint()
+
+    exit()
     data = {}
     data['uniform'] = knn_uniform_metrics.accuracy
     plot_data_avg(data, f'lvq1_accuracy_avg.png', 'Num of Protos', 'Avg Accuracy')
