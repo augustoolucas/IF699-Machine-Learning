@@ -1,6 +1,6 @@
 import random
 
-NUM_UPDATES = 10
+NUM_UPDATES = 25
 WEIGHT = 0.1
 WINDOW = (1 - WEIGHT) / (1 + WEIGHT)
 

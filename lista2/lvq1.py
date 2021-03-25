@@ -4,6 +4,7 @@ import lvq_common
 
 def gen_prototypes(x, y, num_protos):
     protos_x, protos_y = lvq_common.get_random_prototypes(x, y, num_protos)
+    print('Got random prototypes')
     classifier = KNeighborsClassifier(n_neighbors=1)
     y = [data[0] for data in y.values]
     classifier.fit(x, y)
@@ -19,5 +20,5 @@ def gen_prototypes(x, y, num_protos):
             instance = x.iloc[nb]
             weight = lvq_common.WEIGHT if proto_y == pred else -lvq_common.WEIGHT
             proto_x = lvq_common.update_prototype(proto_x, instance, weight)
-
+    print("Done gen prototypes")
     return protos_x, protos_y

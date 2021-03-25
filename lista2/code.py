@@ -163,8 +163,8 @@ if __name__ == '__main__':
     kf = KFold(n_splits=5)
     kf.get_n_splits(attributes)
 
-    k_values = range(1, 3)
-    num_prototypes = [100, 500, 1000]
+    k_values = range(1, 4)
+    num_prototypes = [100, 200, 300]
     prototypes_metrics = {}
 
     for n_k in k_values:
