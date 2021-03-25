@@ -2,8 +2,8 @@ from sklearn.neighbors import KNeighborsClassifier
 
 import lvq_common
 
-def gen_prototypes(x, y):
-    protos_x, protos_y = lvq_common.get_random_prototypes(x, y, 20)
+def gen_prototypes(x, y, num_protos):
+    protos_x, protos_y = lvq_common.get_random_prototypes(x, y, num_protos)
     classifier = KNeighborsClassifier(n_neighbors=1)
     classifier.fit(x, y)
 

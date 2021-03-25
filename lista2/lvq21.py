@@ -5,11 +5,10 @@ import numpy as np
 
 e = 1e-12
 
-def gen_prototypes(x, y):
-    protos_x, protos_y = lvq_common.get_random_prototypes(x, y, 20)
+def gen_prototypes(x, y, num_protos):
+    protos_x, protos_y = lvq_common.get_random_prototypes(x, y, num_protos)
     classifier = KNeighborsClassifier(n_neighbors=2)
     classifier.fit(protos_x, protos_y)
-
     neighbors_proto = classifier.kneighbors(X=x, n_neighbors=2,
                                             return_distance=False)
 
