@@ -153,7 +153,7 @@ def avg(lst):
 
 
 if __name__ == '__main__':
-    attributes, labels = load_dataset('./kc1.arff')
+    attributes, labels = load_dataset('./kc2.arff')
     label_column = get_data_label(labels)
 
     if label_column == 'defects':
@@ -219,11 +219,11 @@ if __name__ == '__main__':
         prototypes_metrics[n_k].append(knn_uniform_metrics)
 
 
-    plot_data_avg(prototypes_metrics, 'acc', f'lvq2_accuracy_avg.png', 'Num of Protos', 'Avg Accuracy')
-    plot_data_avg(prototypes_metrics, 'prec', f'lvq2_precision_avg.png', 'Num of Protos', 'Avg Accuracy')
-    plot_data_avg(prototypes_metrics, 'f1', f'lvq2_f1_avg.png', 'Num of Protos', 'Avg Accuracy')
-    plot_data_avg(prototypes_metrics, 'train_time', f'lvq2_f1_avg.png', 'Num of Protos', 'Avg Accuracy')
-    plot_data_avg(prototypes_metrics, 'test_time', f'lvq2_time_avg.png', 'Num of Protos', 'Avg Accuracy')
+    plot_data_avg(prototypes_metrics, 'acc', f'lvq3_accuracy_avg.png', 'Num of Protos', 'Avg Accuracy')
+    plot_data_avg(prototypes_metrics, 'prec', f'lvq3_precision_avg.png', 'Num of Protos', 'Avg Accuracy')
+    plot_data_avg(prototypes_metrics, 'f1', f'lvq3_f1_avg.png', 'Num of Protos', 'Avg Accuracy')
+    plot_data_avg(prototypes_metrics, 'train_time', f'lvq3_f1_avg.png', 'Num of Protos', 'Avg Accuracy')
+    plot_data_avg(prototypes_metrics, 'test_time', f'lvq3_time_avg.png', 'Num of Protos', 'Avg Accuracy')
 """
 print('Uniform Avg Training Time: ',
       avg(list(map(avg, list(knn_uniform_metrics.training_time.values())))))
