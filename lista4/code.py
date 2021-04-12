@@ -28,8 +28,6 @@ def load_dataset(filename):
     else:
         df[label_column] = df[label_column].astype(str).replace({"b'no'": 0, "b'yes'": 1})
 
-    # df = df[(df[label_column] == 0)].reset_index(drop=True)
-
     features = pd.DataFrame(df.drop(label_column, 1))
     labels = pd.DataFrame(df[label_column])
 
@@ -190,36 +188,35 @@ if __name__ == '__main__':
     features, labels = load_dataset('./kc1.arff')
     label_column = get_data_label(labels)
 
-    features_bugs = features[labels[label_column] == 1]
-    labels_bugs = labels[labels[label_column] == 1]
-
-    features_no_bugs = features[labels[label_column] == 0]
-    labels_no_bugs = labels[labels[label_column] == 0]
-
     k_values = list(range(2, 7, 1))
+    
+    kf = KFold(n_splits=5)
+    kf.get_n_splits(features)
+    
+    for train_idx, test_idx in kf.split(features):
+        train_features_bugs = features.iloc[train_idx][labels.iloc[train_idx][label_column] == 1].reset_index(drop=True)
+        train_labels_bugs = labels.iloc[train_idx][labels.iloc[train_idx][label_column] == 1].reset_index(drop=True)
+        train_features_no_bugs = features.iloc[train_idx][labels.iloc[train_idx][label_column] == 0].reset_index(drop=True)
+        train_labels_no_bugs = labels.iloc[train_idx][labels.iloc[train_idx][label_column] == 0].reset_index(drop=True)
 
-    x_train_bugs = features_bugs.iloc[0:int(len(features_bugs)*0.8)].reset_index(drop=True)
-    y_train_bugs = labels_bugs.iloc[0:int(len(labels_bugs)*0.8)].reset_index(drop=True)
+        test_features_bugs = features.iloc[test_idx][labels.iloc[test_idx][label_column] == 1].reset_index(drop=True)
+        test_labels_bugs = labels.iloc[test_idx][labels.iloc[test_idx][label_column] == 1].reset_index(drop=True)
+        test_features_no_bugs = features.iloc[test_idx][labels.iloc[test_idx][label_column] == 0].reset_index(drop=True)
+        test_labels_no_bugs = labels.iloc[test_idx][labels.iloc[test_idx][label_column] == 0].reset_index(drop=True)
 
-    x_train_no_bugs = features_no_bugs.iloc[0:int(len(features_no_bugs)*0.8)].reset_index(drop=True)
-    y_train_no_bugs = labels_no_bugs.iloc[0:int(len(labels_no_bugs)*0.8)].reset_index(drop=True)
+        test_features = pd.concat([test_features_bugs, test_features_no_bugs]).reset_index(drop=True)
+        test_labels = pd.concat([test_labels_bugs, test_labels_no_bugs]).reset_index(drop=True)
 
-    x_test = features_no_bugs.iloc[int(len(features_no_bugs)*0.8):].reset_index(drop=True)
-    x_test = x_test.append(features_bugs.iloc[int(len(features_bugs)*0.8):]).reset_index(drop=True)
+        k_bugs = get_best_k(train_features_bugs, k_values)
+        k_no_bugs = get_best_k(train_features_bugs, k_values)
 
-    y_test = labels_no_bugs.iloc[int(len(labels_no_bugs)*0.8):].reset_index(drop=True)
-    y_test = y_test.append(labels_bugs.iloc[int(len(labels_bugs)*0.8):]).reset_index(drop=True)
+        kmeans_bugs = KMeans(n_clusters=k_bugs).fit(train_features_bugs)
+        kmeans_no_bugs = KMeans(n_clusters=k_no_bugs).fit(train_features_no_bugs)
 
-    k_bugs = get_best_k(x_train_bugs, k_values)
-    k_no_bugs = get_best_k(x_train_no_bugs, k_values)
+        x_train, y_train = get_train_data((kmeans_bugs, True),
+                                          (kmeans_no_bugs, False),
+                                          features.columns)
 
-    kmeans_bugs = KMeans(n_clusters=k_bugs).fit(x_train_bugs)
-    kmeans_no_bugs = KMeans(n_clusters=k_no_bugs).fit(x_train_no_bugs)
-
-    x_train, y_train = get_train_data((kmeans_bugs, True),
-                                      (kmeans_no_bugs, False),
-                                      features.columns)
-
-    naive_bayes = GaussianNB().fit(x_train, y_train)
-    prediction = naive_bayes.predict(x_test)
-    print(metrics.classification_report(y_test, prediction))
+        naive_bayes = GaussianNB().fit(x_train, y_train)
+        prediction = naive_bayes.predict(test_features)
+        print(metrics.classification_report(test_labels, prediction))
