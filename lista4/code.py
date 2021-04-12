@@ -34,124 +34,6 @@ def load_dataset(filename):
     return features, labels
 
 
-class Metrics():
-    def __init__(self):
-        self.accuracy = {}
-        self.precision = {}
-        self.recall = {}
-        self.f1 = {}
-        self.test_time = {}
-        self.training_time = {}
-
-    def update(self, k, y_test, y_pred):
-        self.update_acc(k, metrics.accuracy_score(y_test, y_pred))
-        self.update_precision(k, metrics.precision_score(y_test, y_pred))
-        self.update_recall(k, metrics.recall_score(y_test, y_pred))
-        self.update_f1(k, metrics.f1_score(y_test, y_pred))
-
-    def update_acc(self, k, value):
-        if k not in self.accuracy:
-            self.accuracy[k] = [value]
-        else:
-            self.accuracy[k].append(value)
-
-    def update_precision(self, k, value):
-        if k not in self.precision:
-            self.precision[k] = [value]
-        else:
-            self.precision[k].append(value)
-
-    def update_recall(self, k, value):
-        if k not in self.recall:
-            self.recall[k] = [value]
-        else:
-            self.recall[k].append(value)
-
-    def update_f1(self, k, value):
-        if k not in self.f1:
-            self.f1[k] = [value]
-        else:
-            self.f1[k].append(value)
-
-    def update_test_time(self, k, value):
-        if k not in self.test_time:
-            self.test_time[k] = [value]
-        else:
-            self.test_time[k].append(value)
-
-    def update_training_time(self, k, value):
-        if k not in self.training_time:
-            self.training_time[k] = [value]
-        else:
-            self.training_time[k].append(value)
-
-def plot_data(data, filename, xlabel='', ylabel=''):
-    fig = plt.figure()
-    for k, v in data.items():
-        plt.plot(list(range(1, 6)), v, label=f'K = {k}')
-
-    lg = plt.legend(bbox_to_anchor=(1.05, 1.0), loc='upper left')
-    plt.xticks(range(1, 6))
-    plt.xlabel(xlabel)
-    plt.ylabel(ylabel)
-
-    plt.savefig(filename,
-                dpi=144,
-                format='png',
-                bbox_extra_artists=(lg,),
-                bbox_inches='tight')
-
-def plot_data_avg(data, metric, filename, xlabel='', ylabel='', label=''):
-    fig = plt.figure()
-    min_v = 999
-    max_v = 0
-    for k, proto_metrics in prototypes_metrics.items():
-        v = []
-        if metric == 'acc':
-            data = proto_metrics[0].accuracy
-        elif metric == 'prec':
-            data = proto_metrics[0].precision
-        elif metric == 'f1':
-            data = proto_metrics[0].f1
-        elif metric == 'train_time':
-            data = proto_metrics[0].training_time
-        elif metric == 'test_time':
-            data = proto_metrics[0].test_time
-
-        v.append(list(map(avg, list(data.values()))))
-        v = v[0]
-        p, = plt.plot(range(1, len(v)+1), v, alpha=0.8, linewidth=3, label=f'K = {k}')
-
-        #if len(data) > 1:
-            #p.set_label(k.capitalize())
-
-        plt.xticks(range(1, len(data.keys())+1), data.keys())
-
-        if min_v > min(v):
-            min_v = min(v)
-
-        if max_v < max(v):
-            max_v = max(v)
-
-    plt.xlabel(xlabel, fontsize='x-large')
-    plt.ylabel(ylabel, fontsize='x-large')
-    plt.ylim(min_v*0.95, max_v*1.05)
-
-    if len(data) > 1:
-        lg = plt.legend(loc='lower left', bbox_to_anchor=(0.0, 1.01), ncol=len(data),
-                        borderaxespad=0, frameon=False, fontsize='x-large')
-        plt.savefig(filename,
-                    dpi=144,
-                    format='png',
-                    bbox_extra_artists=(lg,),
-                    bbox_inches='tight')
-    else:
-        plt.legend()
-        plt.savefig(filename,
-                    dpi=144,
-                    format='png')
-
-
 def avg(lst):
     return sum(lst)/len(lst)
 
@@ -185,14 +67,30 @@ def get_train_data(data1, data2, features):
 
 
 if __name__ == '__main__':
-    features, labels = load_dataset('./kc1.arff')
+    features, labels = load_dataset('./kc2.arff')
     label_column = get_data_label(labels)
+
+    e = 1e-12
+
+    features = (features - features.mean()) / (features.max() - features.min() + e)
 
     k_values = list(range(2, 7, 1))
     
     kf = KFold(n_splits=5)
     kf.get_n_splits(features)
     
+    acc_naive_bayes_kmeans = []
+    precision_naive_bayes_kmeans = []
+    recall_naive_bayes_kmeans = [] 
+
+    acc_naive_bayes = []
+    precision_naive_bayes = []
+    recall_naive_bayes = [] 
+    
+    acc_knn = []
+    precision_knn = []
+    recall_knn = [] 
+
     for train_idx, test_idx in kf.split(features):
         train_features_bugs = features.iloc[train_idx][labels.iloc[train_idx][label_column] == 1].reset_index(drop=True)
         train_labels_bugs = labels.iloc[train_idx][labels.iloc[train_idx][label_column] == 1].reset_index(drop=True)
@@ -204,8 +102,13 @@ if __name__ == '__main__':
         test_features_no_bugs = features.iloc[test_idx][labels.iloc[test_idx][label_column] == 0].reset_index(drop=True)
         test_labels_no_bugs = labels.iloc[test_idx][labels.iloc[test_idx][label_column] == 0].reset_index(drop=True)
 
+        train_features = pd.concat([train_features_bugs, train_features_no_bugs]).reset_index(drop=True)
+        train_labels = pd.concat([train_labels_bugs, train_labels_no_bugs]).reset_index(drop=True)
+        train_labels = np.ravel(train_labels)
+
         test_features = pd.concat([test_features_bugs, test_features_no_bugs]).reset_index(drop=True)
         test_labels = pd.concat([test_labels_bugs, test_labels_no_bugs]).reset_index(drop=True)
+        test_labels = np.ravel(test_labels)
 
         k_bugs = get_best_k(train_features_bugs, k_values)
         k_no_bugs = get_best_k(train_features_bugs, k_values)
@@ -217,6 +120,44 @@ if __name__ == '__main__':
                                           (kmeans_no_bugs, False),
                                           features.columns)
 
-        naive_bayes = GaussianNB().fit(x_train, y_train)
+        naive_bayes_kmeans = GaussianNB().fit(x_train, y_train)
+        naive_bayes = GaussianNB().fit(train_features, train_labels)
+        knn = KNeighborsClassifier(n_neighbors=1).fit(train_features, train_labels)
+
+        prediction = naive_bayes_kmeans.predict(test_features)
+        acc_naive_bayes_kmeans.append(metrics.accuracy_score(test_labels, prediction))
+        precision_naive_bayes_kmeans.append(metrics.precision_score(test_labels, prediction))
+        recall_naive_bayes_kmeans.append(metrics.recall_score(test_labels, prediction))
+
         prediction = naive_bayes.predict(test_features)
-        print(metrics.classification_report(test_labels, prediction))
+        acc_naive_bayes.append(metrics.accuracy_score(test_labels, prediction))
+        precision_naive_bayes.append(metrics.precision_score(test_labels, prediction))
+        recall_naive_bayes.append(metrics.recall_score(test_labels, prediction))
+
+        prediction = knn.predict(test_features)
+        acc_knn.append(metrics.accuracy_score(test_labels, prediction))
+        precision_knn.append(metrics.precision_score(test_labels, prediction))
+        recall_knn.append(metrics.recall_score(test_labels, prediction))
+
+    acc_naive_bayes_kmeans = avg(acc_naive_bayes_kmeans)
+    precision_naive_bayes_kmeans = avg(precision_naive_bayes_kmeans)
+    recall_naive_bayes_kmeans = avg(recall_naive_bayes_kmeans)
+
+    acc_naive_bayes = avg(acc_naive_bayes)
+    precision_naive_bayes = avg(precision_naive_bayes)
+    recall_naive_bayes = avg(recall_naive_bayes)
+    
+    acc_knn = avg(acc_knn)
+    precision_knn = avg(precision_knn)
+    recall_knn = avg(recall_knn)
+
+    print(f'1NN - Acc: {acc_knn}, Precision: {precision_knn}, Recall: {recall_knn}')
+    print(f'Naive Bayes - Acc: {acc_naive_bayes}, Precision: {precision_naive_bayes}, Recall: {recall_naive_bayes}')
+    print(f'Naive Bayes KMeans - Acc: {acc_naive_bayes_kmeans}, Precision: {precision_naive_bayes_kmeans}, Recall: {recall_naive_bayes_kmeans}')
+
+    plt.figure()
+    plt.scatter(['1NN', 'Naive Bayes', 'Naive Bayes Kmeans'], [acc_knn, acc_naive_bayes, acc_naive_bayes_kmeans], label='Avg Accuracy')
+    plt.scatter(['1NN', 'Naive Bayes', 'Naive Bayes Kmeans'], [precision_knn, precision_naive_bayes, precision_naive_bayes_kmeans], label='Avg Precision')
+    plt.scatter(['1NN', 'Naive Bayes', 'Naive Bayes Kmeans'], [recall_knn, recall_naive_bayes, recall_naive_bayes_kmeans], label='Avg Recall')
+    plt.legend()
+    plt.show()
